@@ -1,5 +1,8 @@
 # <img src="app/resources/neodigiIcon.png" alt="NeoDigi" width="40" height="40" style="vertical-align: middle;"> NeoDigi
 
+> **⚠ ALPHA SOFTWARE** — Bugs guaranteed, features missing, APIs unstable.
+> Suggestions and contributions welcome — open an issue or PR on GitHub.
+
 **Modern Qt6 UI for the fldigi digital modem engine.**
 
 NeoDigi replaces fldigi's built-in FLTK interface with a clean, modern Qt6 UI while keeping all DSP, modem, soundcard, and CAT control running on the stock fldigi backend under the hood. Communication is exclusively via XML-RPC — no patches to fldigi required.
