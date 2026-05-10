@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>style.qss</file>
+        <file>light.qss</file>
+        <file>neodigiIcon.png</file>
+    </qresource>
+</RCC>
