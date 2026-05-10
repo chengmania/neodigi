@@ -1,10 +1,8 @@
-# neodigi
+# <img src="app/resources/neodigiIcon.png" alt="NeoDigi" width="40" height="40" style="vertical-align: middle;"> NeoDigi
 
 **Modern Qt6 UI for the fldigi digital modem engine.**
 
-neodigi replaces fldigi's built-in FLTK interface with a clean, modern Qt6 UI while keeping all DSP, modem, soundcard, and CAT control running on the stock fldigi backend under the hood. Communication is exclusively via XML-RPC — no patches to fldigi required.
-
-![screenshot](docs/screenshot.png)
+NeoDigi replaces fldigi's built-in FLTK interface with a clean, modern Qt6 UI while keeping all DSP, modem, soundcard, and CAT control running on the stock fldigi backend under the hood. Communication is exclusively via XML-RPC — no patches to fldigi required.
 
 ## Features
 
@@ -56,7 +54,8 @@ sudo pacman -S qt6-base portaudio fftw cmake gcc fldigi netcat curl
 ## Build
 
 ```bash
-cd app
+git clone https://github.com/chengmania/neodigi.git
+cd neodigi/app
 cmake -B build
 cmake --build build -j$(nproc)
 ```
@@ -71,9 +70,9 @@ cmake --build build -j$(nproc)
 
 On the first run, if fldigi is not found in your PATH, the script will prompt you to locate the fldigi binary. The path is saved for subsequent launches.
 
-**Subsequent runs** — launches fldigi minimized, waits for XML-RPC, then opens the neodigi Qt UI. Closing the UI also stops fldigi.
+**Subsequent runs** — launches fldigi minimized, waits for XML-RPC, then opens the NeoDigi Qt UI. Closing the UI also stops fldigi.
 
-**Development / standalone mode** — run neodigi without fldigi to test the UI:
+**Development / standalone mode** — run NeoDigi without fldigi to test the UI:
 
 ```bash
 cd app
@@ -94,7 +93,7 @@ Then go to **Settings → XML-RPC Connection…** and enable **Stub Mode** (or s
 └─────────────────┘                  └─────────────────┘
 ```
 
-fldigi runs minimized in the background owning all DSP, modem, and hardware I/O. neodigi provides the user interface only. Neither breaks if the other is updated independently. Companion apps (flrig, flmsg, flamp) connect to fldigi directly as normal.
+fldigi runs minimized in the background owning all DSP, modem, and hardware I/O. NeoDigi provides the user interface only. Neither breaks if the other is updated independently. Companion apps (flrig, flmsg, flamp) connect to fldigi directly as normal.
 
 ## Architecture
 
@@ -132,4 +131,4 @@ You are free to use, share, and modify this software as long as:
 
 See [LICENSE](LICENSE) for the full text.
 
-*Note: The fldigi modem engine is licensed under GPL v3 and is not covered by this license. neodigi communicates with a stock, unmodified fldigi via XML-RPC and is a separate program.*
+*Note: The fldigi modem engine is licensed under GPL v3 and is not covered by this license. NeoDigi communicates with a stock, unmodified fldigi via XML-RPC and is a separate program.*
