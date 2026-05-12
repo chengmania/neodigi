@@ -58,7 +58,7 @@ sudo pacman -S qt6-base portaudio fftw cmake gcc fldigi netcat curl
 
 ```bash
 git clone https://github.com/chengmania/neodigi.git
-cd neodigi/app
+cd neodigi
 cmake -B build
 cmake --build build -j$(nproc)
 ```
