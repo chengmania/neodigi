@@ -27,6 +27,7 @@ public:
 
     void setCarrierHz(int hz);
     void setModemBandwidthHz(int hz);
+    void setModemName(const QString& name);
     void setStubMode(bool enabled);
     bool isStubMode() const { return m_stubMode; }
     bool setAudioDevice(int deviceIdx);

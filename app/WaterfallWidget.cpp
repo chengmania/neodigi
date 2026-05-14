@@ -1,4 +1,5 @@
 #include "WaterfallWidget.h"
+#include "ModemBandwidth.h"
 
 #include <QPainter>
 #include <QPaintEvent>
@@ -181,6 +182,17 @@ WaterfallWidget::~WaterfallWidget()
 
 void WaterfallWidget::setCarrierHz(int hz) { m_carrierHz = hz; }
 void WaterfallWidget::setModemBandwidthHz(int hz) { m_modemBwHz = hz; }
+
+void WaterfallWidget::setModemName(const QString& name)
+{
+    for (auto it = MODEM_BW.cbegin(); it != MODEM_BW.cend(); ++it) {
+        if (it.key().compare(name, Qt::CaseInsensitive) == 0) {
+            m_modemBwHz = it.value();
+            return;
+        }
+    }
+    m_modemBwHz = 100;
+}
 
 void WaterfallWidget::setStubMode(bool enabled)
 {
@@ -530,10 +542,15 @@ void WaterfallWidget::drawCursor(QPainter& painter) const
     const int bwPx = (int)((float)m_modemBwHz / 4000.f * width());
     const int rulerH = 16;
 
-    QColor bwColor(0x9c, 0xdc, 0xfe, 40);
-    painter.fillRect(x - bwPx / 2, rulerH, bwPx, height() - rulerH, bwColor);
-
-    painter.setPen(QPen(QColor(0x9c, 0xdc, 0xfe), 1));
+    // Bandwidth fill
+    painter.fillRect(x - bwPx / 2, rulerH, bwPx, height() - rulerH,
+                     QColor(0x4e, 0xc9, 0xb0, 40));
+    // Left and right bandwidth edges
+    painter.setPen(QPen(QColor(0x4e, 0xc9, 0xb0, 120), 1));
+    painter.drawLine(x - bwPx / 2, rulerH, x - bwPx / 2, height());
+    painter.drawLine(x + bwPx / 2, rulerH, x + bwPx / 2, height());
+    // Center carrier cursor
+    painter.setPen(QPen(QColor(0x4e, 0xc9, 0xb0), 1));
     painter.drawLine(x, rulerH, x, height());
 }
 

@@ -1187,6 +1187,7 @@ void MainWindow::onPollTimer()
         m_lastModem = modemName;
         m_modePill->setText(modemName);
         m_statusBar->setModemName(modemName);
+        m_waterfall->setModemName(modemName);
     }
 
     // TRX state sync — poll actual fldigi state and update local flags
