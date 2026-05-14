@@ -686,7 +686,6 @@ void MainWindow::onLiveTxToggle()
         }
         m_client->addTx(" ^r");
         m_liveTxSentLen = 0;
-        m_waterfall->setTxActive(false);
         m_statusBar->setTrxState("RX");
     }
 
@@ -1202,16 +1201,16 @@ void MainWindow::onPollTimer()
             m_isTx = false;
             updateTxButton();
             m_txPulseTimer->stop();
-            m_waterfall->setTxActive(false);
         }
 
         // Tune button: fldigi returned to RX — cancel tune indicator
         if (m_isTuning && !serverTx) {
             m_isTuning = false;
             m_sidebar->setTune(false);
-            m_waterfall->setTxActive(false);
         }
 
+        // Overlay tracks actual fldigi state — stays up until fldigi is back in RX
+        m_waterfall->setTxActive(serverTx);
         m_statusBar->setTrxState((serverTx || m_isLiveTx) ? "TX" : "RX");
     } else {
         m_statusBar->setTrxState((m_isTx || m_isLiveTx) ? "TX" : "RX");
