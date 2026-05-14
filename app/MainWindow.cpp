@@ -56,6 +56,7 @@ MainWindow::MainWindow(QWidget* parent)
     , m_pollTimer(new QTimer(this))
     , m_txPulseTimer(new QTimer(this))
     , m_trxPollTimer(new QTimer(this))
+    , m_liveTxFlushTimer(new QTimer(this))
     , m_darkTheme(true)
     , m_isTx(false)
     , m_isTuning(false)
@@ -122,6 +123,19 @@ MainWindow::MainWindow(QWidget* parent)
     m_trxPollTimer->setInterval(250);
     m_trxPollTimer->setSingleShot(false);
     connect(m_trxPollTimer, &QTimer::timeout, this, &MainWindow::onTrxPollTimer);
+
+    // 50ms flush — drains m_liveTxPending to fldigi between XML-RPC calls.
+    // Fires only while live TX is active. Skips if a call is already in progress
+    // to avoid the re-entrancy guard silently dropping the addTx() call.
+    m_liveTxFlushTimer->setInterval(50);
+    m_liveTxFlushTimer->setSingleShot(false);
+    connect(m_liveTxFlushTimer, &QTimer::timeout, this, [this]() {
+        if (m_liveTxPending.isEmpty()) return;
+        if (m_client->isCallInProgress()) return;
+        const QString toSend = m_liveTxPending;
+        m_liveTxPending.clear();
+        m_client->addTx(toSend);
+    });
 
     connect(m_client, &FLDigiClient::connectionStateChanged,
             this, &MainWindow::onConnectionStateChanged);
@@ -386,6 +400,14 @@ void MainWindow::buildCentralWidget()
     txHeader->addStretch();
     txHeader->addWidget(m_txToggleBtn);
     txHeader->addSpacing(4);
+
+    m_liveTxBtn = new QPushButton("TX/RX");
+    m_liveTxBtn->setObjectName("LiveTxBtn");
+    m_liveTxBtn->setFixedSize(68, 24);
+    m_liveTxBtn->setToolTip("Live TX — stream keystrokes directly to fldigi");
+    txHeader->addWidget(m_liveTxBtn);
+    txHeader->addSpacing(4);
+
     txHeader->addWidget(clearTxBtn);
 
     m_txPane = new QTextEdit(receiveTab);
@@ -404,6 +426,15 @@ void MainWindow::buildCentralWidget()
         m_client->clearTx();
     });
     connect(m_txToggleBtn, &QPushButton::clicked, this, &MainWindow::onTxToggle);
+    connect(m_liveTxBtn,  &QPushButton::clicked, this, &MainWindow::onLiveTxToggle);
+
+    connect(m_txPane, &QTextEdit::textChanged, this, [this]() {
+        if (!m_isLiveTx) return;
+        const QString text = m_txPane->toPlainText();
+        if (text.length() <= m_liveTxSentLen) return;  // deletion — ignore
+        m_liveTxPending += text.mid(m_liveTxSentLen);
+        m_liveTxSentLen = text.length();
+    });
 
     m_tabs->addTab(receiveTab,  "Console");
 
@@ -523,6 +554,7 @@ void MainWindow::buildCentralWidget()
     m_statusBar->setTrxState("--");
     m_statusBar->setSqlLevel(35);
     updateTxButton();
+    updateLiveTxButton();
 }
 
 // ---------------------------------------------------------------------------
@@ -615,6 +647,63 @@ void MainWindow::updateTxButton()
             "QPushButton { background-color:#1a4a3a; color:#4ec9b0;"
             " border:1px solid #4ec9b0; border-radius:3px; font-weight:bold; }"
             "QPushButton:hover { background-color:#2a6b5e; }");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Live TX toggle
+// ---------------------------------------------------------------------------
+
+void MainWindow::onLiveTxToggle()
+{
+    m_isLiveTx = !m_isLiveTx;
+
+    if (m_isLiveTx) {
+        if (m_isTuning) {
+            m_isTuning = false;
+            m_sidebar->setTune(false);
+        }
+        if (m_isTx) {
+            m_isTx = false;
+            m_txPulseTimer->stop();
+            updateTxButton();
+        }
+        m_liveTxSentLen = m_txPane->toPlainText().length();
+        m_liveTxPending.clear();
+        m_client->startTx();
+        m_liveTxFlushTimer->start();
+        // Do NOT start m_trxPollTimer — live TX is user-controlled, not server-state-driven.
+        // The poll timer would reset m_isLiveTx if fldigi returns to RX on an empty buffer.
+        m_statusBar->setTrxState("TX");
+    } else {
+        m_liveTxFlushTimer->stop();
+        // Flush any pending text, then close transmission
+        if (!m_liveTxPending.isEmpty()) {
+            m_client->addTx(m_liveTxPending);
+            m_liveTxPending.clear();
+        }
+        m_client->addTx(" ^r");
+        m_liveTxSentLen = 0;
+        m_statusBar->setTrxState("RX");
+    }
+
+    updateLiveTxButton();
+}
+
+void MainWindow::updateLiveTxButton()
+{
+    if (m_isLiveTx) {
+        m_liveTxBtn->setText("● TX/RX");
+        m_liveTxBtn->setStyleSheet(
+            "QPushButton { background-color:#f44747; color:#ffffff;"
+            " border:1px solid #f44747; border-radius:3px; font-weight:bold; }"
+            "QPushButton:hover { background-color:#ff6060; }");
+    } else {
+        m_liveTxBtn->setText("TX/RX");
+        m_liveTxBtn->setStyleSheet(
+            "QPushButton { background-color:transparent; color:#ce9178;"
+            " border:1px solid #ce9178; border-radius:3px; font-weight:bold; }"
+            "QPushButton:hover { background-color:#3a2a22; }");
     }
 }
 
@@ -1041,6 +1130,14 @@ void MainWindow::onConnectionStateChanged(bool connected)
         m_modePill->setText("---");
         m_statusBar->setModemName("NO CONN");
         m_statusBar->setTrxState("--");
+        // Clean up live TX if fldigi goes away
+        if (m_isLiveTx) {
+            m_isLiveTx = false;
+            m_liveTxSentLen = 0;
+            m_liveTxPending.clear();
+            m_liveTxFlushTimer->stop();
+            updateLiveTxButton();
+        }
         qInfo("[neodigi] fldigi disconnected — waiting for reconnect");
     }
 }
@@ -1109,9 +1206,9 @@ void MainWindow::onPollTimer()
             m_sidebar->setTune(false);
         }
 
-        m_statusBar->setTrxState(serverTx ? "TX" : "RX");
+        m_statusBar->setTrxState((serverTx || m_isLiveTx) ? "TX" : "RX");
     } else {
-        m_statusBar->setTrxState(m_isTx ? "TX" : "RX");
+        m_statusBar->setTrxState((m_isTx || m_isLiveTx) ? "TX" : "RX");
     }
 
     // VFO frequency
@@ -1180,28 +1277,14 @@ void MainWindow::onModePillClicked()
             "Could not retrieve modem list from fldigi.");
         return;
     }
-    QDialog dlg(this);
-    dlg.setWindowTitle("Select Mode");
-    dlg.resize(260, 380);
-    auto* vbox = new QVBoxLayout(&dlg);
-    auto* list = new QListWidget(&dlg);
-    list->addItems(names);
     const QString current = m_modePill->text();
-    const auto matches = list->findItems(current, Qt::MatchExactly);
-    if (!matches.isEmpty()) list->setCurrentItem(matches.first());
-    auto* btns = new QDialogButtonBox(
-        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dlg);
-    vbox->addWidget(list);
-    vbox->addWidget(btns);
-    connect(btns, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
-    connect(btns, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
-    connect(list, &QListWidget::itemDoubleClicked, &dlg, &QDialog::accept);
-    if (dlg.exec() == QDialog::Accepted && list->currentItem()) {
-        const QString sel = list->currentItem()->text();
-        m_client->setModemByName(sel);
-        m_modePill->setText(sel);
-        m_statusBar->setModemName(sel);
-    }
+    ModeSelector dlg(names, current, this);
+    connect(&dlg, &ModeSelector::modeSelected, this, [this](const QString& mode) {
+        m_client->setModemByName(mode);
+        m_modePill->setText(mode);
+        m_statusBar->setModemName(mode);
+    });
+    dlg.exec();
 }
 
 // ---------------------------------------------------------------------------
@@ -2013,6 +2096,13 @@ void MainWindow::showFldigiPathDialog()
 
 void MainWindow::closeEvent(QCloseEvent* event)
 {
+    if (m_isLiveTx) {
+        m_liveTxFlushTimer->stop();
+        if (!m_liveTxPending.isEmpty())
+            m_client->addTx(m_liveTxPending);
+        m_client->addTx(" ^r");
+        m_isLiveTx = false;
+    }
     saveFldigiState();
     QSettings s("KC3SMW", "neodigi");
     s.setValue("ui/geometry",      saveGeometry());

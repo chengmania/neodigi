@@ -22,8 +22,9 @@ public:
     explicit FLDigiClient(QObject* parent = nullptr);
     ~FLDigiClient() override;
 
-    bool isStubMode()  const { return m_stubMode; }
-    bool isConnected() const { return m_connected; }
+    bool isStubMode()        const { return m_stubMode; }
+    bool isConnected()       const { return m_connected; }
+    bool isCallInProgress()  const { return m_callInProgress; }
 
     void setStubMode(bool enabled);
     void setEndpoint(const QString& host, int port);

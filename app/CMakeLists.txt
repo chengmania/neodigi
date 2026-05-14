@@ -20,6 +20,7 @@ qt_add_executable(neodigi
     MacroGrid.cpp
     StatusBar.cpp
     Logbook.cpp
+    ModeSelector.cpp
     resources/neodigi.qrc
 )
 

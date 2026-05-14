@@ -4,6 +4,7 @@
 #include <QSplitter>
 #include <QTimer>
 #include <QNetworkAccessManager>
+#include "ModeSelector.h"
 
 struct TextSizes {
     int rx          = 12;
@@ -55,6 +56,7 @@ private slots:
     void onTuneToggled(bool enabled);
     void onFreqChanged(double hz);
     void onTxToggle();
+    void onLiveTxToggle();
     void onTxPulse();
     void onConnectionStateChanged(bool connected);
     void onModePillClicked();
@@ -89,6 +91,7 @@ private:
     void setAppPalette(bool dark);
     void loadStationInfo();
     void updateTxButton();
+    void updateLiveTxButton();
     void stepFrequency(int deltaHz);
     void stepCarrier(int deltaHz);
     void updateCarrierBarPos(int carrierHz);
@@ -117,6 +120,7 @@ private:
     QTextEdit*   m_rxPane;
     QTextEdit*   m_txPane;
     QPushButton* m_txToggleBtn;
+    QPushButton* m_liveTxBtn     = nullptr;
     QPushButton* m_rxClearBtn;
 
     QLabel*  m_snrLabel;
@@ -124,7 +128,8 @@ private:
 
     QTimer* m_pollTimer;
     QTimer* m_txPulseTimer;
-    QTimer* m_trxPollTimer;    // 250ms poll active only during TX or Tune
+    QTimer* m_trxPollTimer;      // 250ms poll active only during TX or Tune
+    QTimer* m_liveTxFlushTimer;  // 50ms flush for live TX pending buffer
 
     QNetworkAccessManager* m_nam = nullptr;
     QString                m_qrzSessionKey;
@@ -133,6 +138,9 @@ private:
     bool      m_isTx;
     bool      m_isTuning;
     bool      m_txPulsePhase;
+    bool      m_isLiveTx      = false;
+    int       m_liveTxSentLen = 0;
+    QString   m_liveTxPending;
     TextSizes m_textSizes;
 
     // Last-polled fldigi state — used to save/restore across sessions
