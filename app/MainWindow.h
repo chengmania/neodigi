@@ -99,7 +99,6 @@ private:
     void restoreFldigiState();
     void refreshLogTable();
     bool showLogEntryDialog(LogEntry& entry, bool isNew);
-
     void doQrzAuth(const QString& user, const QString& pass, const QString& pendingCall);
     void doQrzLookup(const QString& call);
     void doHamDbLookup(const QString& call);
@@ -138,8 +137,8 @@ private:
     bool      m_isTx;
     bool      m_isTuning;
     bool      m_txPulsePhase;
-    bool      m_isLiveTx      = false;
-    int       m_liveTxSentLen = 0;
+    bool      m_isLiveTx        = false;
+    int       m_liveTxSentLen   = 0;
     QString   m_liveTxPending;
     TextSizes m_textSizes;
 

@@ -28,6 +28,7 @@ public:
     void setCarrierHz(int hz);
     void setModemBandwidthHz(int hz);
     void setModemName(const QString& name);
+    void setTxActive(bool active);
     void setStubMode(bool enabled);
     bool isStubMode() const { return m_stubMode; }
     bool setAudioDevice(int deviceIdx);
@@ -63,6 +64,7 @@ private:
     static QRgb powerToColor(float normalized);
 
     bool    m_stubMode;
+    bool    m_txActive;
     int     m_carrierHz;
     int     m_modemBwHz;
     int     m_deviceIdx;

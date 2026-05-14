@@ -601,6 +601,7 @@ void MainWindow::onTxToggle()
         m_rxPane->ensureCursorVisible();
 
         m_client->startTx();
+        m_waterfall->setTxActive(true);
         m_txPulseTimer->start(500);
         m_trxPollTimer->start();
 
@@ -671,6 +672,7 @@ void MainWindow::onLiveTxToggle()
         m_liveTxSentLen = m_txPane->toPlainText().length();
         m_liveTxPending.clear();
         m_client->startTx();
+        m_waterfall->setTxActive(true);
         m_liveTxFlushTimer->start();
         // Do NOT start m_trxPollTimer — live TX is user-controlled, not server-state-driven.
         // The poll timer would reset m_isLiveTx if fldigi returns to RX on an empty buffer.
@@ -684,6 +686,7 @@ void MainWindow::onLiveTxToggle()
         }
         m_client->addTx(" ^r");
         m_liveTxSentLen = 0;
+        m_waterfall->setTxActive(false);
         m_statusBar->setTrxState("RX");
     }
 
@@ -902,9 +905,9 @@ void MainWindow::showAudioDialog()
 
     QDialog dlg(this);
     dlg.setWindowTitle("Waterfall Audio Source");
-    dlg.setMinimumWidth(460);
+    dlg.setMinimumWidth(400);
 
-    auto* form  = new QFormLayout(&dlg);
+    auto* form = new QFormLayout(&dlg);
 
     auto* warn = new QLabel(
         "<b>PulseAudio</b> — shares the audio device with fldigi.<br>"
@@ -913,30 +916,29 @@ void MainWindow::showAudioDialog()
     warn->setObjectName("dimLabel");
     form->addRow(warn);
 
-    auto* combo = new QComboBox(&dlg);
-    combo->addItem("Disabled (stub waterfall)");
+    auto* rxCombo = new QComboBox(&dlg);
+    rxCombo->addItem("Disabled (stub waterfall)");
     for (const auto& d : devices)
-        combo->addItem(d.second, d.first);  // display: description, data: source name
+        rxCombo->addItem(d.second, d.first);
 
     QSettings as("KC3SMW", "neodigi");
-    // Pre-select based on actual waterfall state, not just saved settings
     if (!m_waterfall->isStubMode()) {
         const QString savedName = as.value("audio/inputDeviceName", "").toString();
         bool found = false;
         if (!savedName.isEmpty()) {
             for (int i = 0; i < devices.size(); ++i) {
                 if (devices[i].first == savedName) {
-                    combo->setCurrentIndex(i + 1);
+                    rxCombo->setCurrentIndex(i + 1);
                     found = true;
                     break;
                 }
             }
         }
-        if (!found) combo->setCurrentIndex(1);  // "Default" — auto-detect
+        if (!found) rxCombo->setCurrentIndex(1);
     } else {
-        combo->setCurrentIndex(0);  // Disabled
+        rxCombo->setCurrentIndex(0);
     }
-    form->addRow("Input source:", combo);
+    form->addRow("Audio source:", rxCombo);
 
     auto* btns = new QDialogButtonBox(
         QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dlg);
@@ -945,14 +947,12 @@ void MainWindow::showAudioDialog()
     connect(btns, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
 
     if (dlg.exec() == QDialog::Accepted) {
-        if (combo->currentIndex() == 0) {
-            // Disabled — stub waterfall
+        if (rxCombo->currentIndex() == 0) {
             as.setValue("audio/autoStart", false);
             as.setValue("audio/inputDeviceName", "");
             m_waterfall->setStubMode(true);
         } else {
-            // devices[0]="Default" (name=""), devices[1+]=real sources
-            const QString srcName = devices[combo->currentIndex() - 1].first;
+            const QString srcName = devices[rxCombo->currentIndex() - 1].first;
             as.setValue("audio/inputDeviceName", srcName);
             as.setValue("audio/autoStart", true);
             if (!m_waterfall->startAudioSource(srcName))
@@ -1139,6 +1139,7 @@ void MainWindow::onConnectionStateChanged(bool connected)
             m_liveTxPending.clear();
             m_liveTxFlushTimer->stop();
             updateLiveTxButton();
+            m_waterfall->setTxActive(false);
         }
         qInfo("[neodigi] fldigi disconnected — waiting for reconnect");
     }
@@ -1201,12 +1202,14 @@ void MainWindow::onPollTimer()
             m_isTx = false;
             updateTxButton();
             m_txPulseTimer->stop();
+            m_waterfall->setTxActive(false);
         }
 
         // Tune button: fldigi returned to RX — cancel tune indicator
         if (m_isTuning && !serverTx) {
             m_isTuning = false;
             m_sidebar->setTune(false);
+            m_waterfall->setTxActive(false);
         }
 
         m_statusBar->setTrxState((serverTx || m_isLiveTx) ? "TX" : "RX");
@@ -1374,9 +1377,11 @@ void MainWindow::onTuneToggled(bool enabled)
             m_txPulseTimer->stop();
         }
         m_client->tune();
+        m_waterfall->setTxActive(true);
         m_trxPollTimer->start();  // 250ms poll — deactivates when fldigi returns to RX
     } else {
         m_client->startRx();
+        m_waterfall->setTxActive(false);
         if (!m_isTx) m_trxPollTimer->stop();
     }
 }
@@ -1397,12 +1402,14 @@ void MainWindow::onTrxPollTimer()
         updateTxButton();
         m_txPulseTimer->stop();
         m_statusBar->setTrxState("RX");
+        m_waterfall->setTxActive(false);
     }
 
     // Tune finished: fldigi returned to RX
     if (m_isTuning && !serverTx) {
         m_isTuning = false;
         m_sidebar->setTune(false);
+        m_waterfall->setTxActive(false);
     }
 
     // Nothing left to monitor — stop the fast poll

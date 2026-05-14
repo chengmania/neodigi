@@ -156,6 +156,7 @@ QRgb WaterfallWidget::powerToColor(float norm)
 WaterfallWidget::WaterfallWidget(QWidget* parent)
     : QWidget(parent)
     , m_stubMode(true)
+    , m_txActive(false)
     , m_carrierHz(1500)
     , m_modemBwHz(62)
     , m_deviceIdx(-1)
@@ -192,6 +193,11 @@ void WaterfallWidget::setModemName(const QString& name)
         }
     }
     m_modemBwHz = 100;
+}
+
+void WaterfallWidget::setTxActive(bool active)
+{
+    m_txActive = active;
 }
 
 void WaterfallWidget::setStubMode(bool enabled)
@@ -289,6 +295,7 @@ bool WaterfallWidget::startAudioSource(const QString& paSourceName)
     m_stubMode = false;
     return true;
 }
+
 
 QVector<QPair<QString, QString>> WaterfallWidget::inputDevices()
 {
@@ -510,6 +517,19 @@ void WaterfallWidget::paintEvent(QPaintEvent*)
 
     drawFreqRuler(painter);
     drawCursor(painter);
+
+    // TX active overlay
+    if (m_txActive) {
+        const int rulerH = 16;
+        painter.fillRect(0, rulerH, width(), height() - rulerH,
+                         QColor(0xf4, 0x47, 0x47, 25));
+        painter.fillRect(width() / 2 - 90, height() / 2 - 12, 180, 24,
+                         QColor(0x1e, 0x1e, 0x1e, 210));
+        painter.setPen(QColor(0xf4, 0x47, 0x47));
+        painter.setFont(QFont("monospace", 9, QFont::Bold));
+        painter.drawText(0, height() / 2 - 12, width(), 24,
+                         Qt::AlignCenter, "● TRANSMITTING");
+    }
 
     // Overlay when no live audio source
     if (m_stubMode) {
