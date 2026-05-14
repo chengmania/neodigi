@@ -12,7 +12,7 @@ class StatusBar : public QWidget {
 public:
     explicit StatusBar(QWidget* parent = nullptr);
 
-    void setFlrigConnected(bool connected);
+    void setFldigiConnected(bool connected);
     void setAfc(bool enabled);
     void setReverse(bool enabled);
     void setSqlLevel(int level);

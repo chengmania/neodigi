@@ -24,7 +24,7 @@ StatusBar::StatusBar(QWidget* parent) : QWidget(parent)
     layout->setContentsMargins(8, 0, 8, 0);
     layout->setSpacing(8);
 
-    m_flrigIndicator = indicator("●flrig", false);
+    m_flrigIndicator = indicator("○fldigi", false);
     m_afcIndicator   = indicator("●AFC",   true);
     m_rvIndicator    = indicator("○RV",    false);
 
@@ -78,9 +78,9 @@ StatusBar::StatusBar(QWidget* parent) : QWidget(parent)
     layout->addStretch();
 }
 
-void StatusBar::setFlrigConnected(bool connected)
+void StatusBar::setFldigiConnected(bool connected)
 {
-    m_flrigIndicator->setText(connected ? "●flrig" : "○flrig");
+    m_flrigIndicator->setText(connected ? "●fldigi" : "○fldigi");
     m_flrigIndicator->setStyleSheet(connected ? "color: #4ec9b0;" : "color: #6a6a6a;");
 }
 

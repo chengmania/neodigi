@@ -1123,6 +1123,7 @@ void MainWindow::onConnectionStateChanged(bool connected)
     if (connected) {
         m_modePill->setText("...");
         m_statusBar->setModemName("...");
+        m_statusBar->setFldigiConnected(true);
         qInfo("[neodigi] fldigi connected");
         // Defer restore until after the current call() returns (m_callInProgress clears)
         QTimer::singleShot(200, this, &MainWindow::restoreFldigiState);
@@ -1130,6 +1131,7 @@ void MainWindow::onConnectionStateChanged(bool connected)
         m_modePill->setText("---");
         m_statusBar->setModemName("NO CONN");
         m_statusBar->setTrxState("--");
+        m_statusBar->setFldigiConnected(false);
         // Clean up live TX if fldigi goes away
         if (m_isLiveTx) {
             m_isLiveTx = false;
